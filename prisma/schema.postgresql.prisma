@@ -1,0 +1,542 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pg_trgm, uuid_ossp]
+}
+
+enum UserRole {
+  STUDENT
+  ORGANIZER
+  ADMIN
+  JUDGE
+  COMMUNITY_COORDINATOR
+}
+
+enum VerificationStatus {
+  VERIFIED
+  PENDING
+  UNVERIFIED
+  STALE_NEEDS_UPDATE
+}
+
+enum HackathonStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  EVENT_ACTIVE
+  SUBMISSION_OPEN
+  SUBMISSION_CLOSED
+  EVALUATION
+  RESULTS_PUBLISHED
+  COMPLETED
+  ARCHIVED
+}
+
+enum EventFormat {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum TeamRole {
+  LEADER
+  MEMBER
+  INDIVIDUAL
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  SHORTLISTED
+  FINALIST
+  WINNER
+  PARTICIPANT
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String
+  name         String
+  role         UserRole     @default(STUDENT)
+  phone        String?
+  avatarUrl    String?
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime     @updatedAt @db.Timestamptz(6)
+
+  studentProfile   StudentProfile?
+  organizerProfile OrganizerProfile?
+  registrations    HackathonRegistration[]
+  teamMemberships  TeamMember[]
+  notifications    Notification[]
+  bookmarks        Bookmark[]
+  evaluations      Evaluation[]
+
+  @@index([role])
+  @@index([email])
+}
+
+model StudentProfile {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usnOrRollNo        String?            @unique
+  collegeName        String
+  universityName     String?
+  district           String
+  graduationYear     Int
+  degreeBranch       String
+  skills             Json               @default("[]")
+  technologies       Json               @default("[]")
+  interests          Json               @default("[]")
+  githubUrl          String?
+  linkedinUrl        String?
+  portfolioUrl       String?
+  verificationStatus VerificationStatus @default(VERIFIED)
+  createdAt          DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime           @updatedAt @db.Timestamptz(6)
+
+  @@index([district])
+  @@index([collegeName])
+}
+
+model OrganizerProfile {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationName   String
+  organizationType   String             @default("COLLEGE")
+  designation        String
+  district           String
+  verificationStatus VerificationStatus @default(VERIFIED)
+  createdAt          DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime           @updatedAt @db.Timestamptz(6)
+
+  hackathons         Hackathon[]
+
+  @@index([district])
+}
+
+model Institution {
+  id                          String             @id @default(uuid())
+  name                        String
+  shortCode                   String             @unique
+  type                        String             @default("COLLEGE")
+  universityAffiliation       String?
+  district                    String
+  city                        String?
+  locality                    String?
+  address                     String?
+  pincode                     String?
+  latitude                    Float
+  longitude                   Float
+  establishedYear             Int?
+  websiteUrl                  String?
+  logoUrl                     String?
+  coursesAvailable            Json               @default("[]")
+  technologyClubs             Json               @default("[]")
+  hackathonsHostedCount       Int                @default(0)
+  hackathonsParticipatedCount Int                @default(0)
+  verificationStatus          VerificationStatus @default(VERIFIED)
+  source                      String             @default("KSHEC Registry")
+  lastUpdated                 DateTime           @default(now()) @db.Timestamptz(6)
+  createdAt                   DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt                   DateTime           @updatedAt @db.Timestamptz(6)
+
+  @@index([district])
+  @@index([type])
+  @@index([name])
+}
+
+model Company {
+  id                        String             @id @default(uuid())
+  name                      String
+  logoUrl                   String?
+  websiteUrl                String?
+  industry                  String
+  district                  String
+  city                      String?
+  locality                  String?
+  address                   String?
+  pincode                   String?
+  latitude                  Float
+  longitude                 Float
+  description               String             @db.Text
+  technologyAreas           Json               @default("[]")
+  hackathonsSponsoredCount  Int                @default(0)
+  hackathonsOrganizedCount  Int                @default(0)
+  verificationStatus        VerificationStatus @default(VERIFIED)
+  source                    String             @default("KDEM Partner Directory")
+  lastUpdated               DateTime           @default(now()) @db.Timestamptz(6)
+  createdAt                 DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt                 DateTime           @updatedAt @db.Timestamptz(6)
+
+  opportunities             CompanyOpportunity[]
+
+  @@index([district])
+  @@index([industry])
+}
+
+model CompanyOpportunity {
+  id           String    @id @default(uuid())
+  companyId    String
+  company      Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title        String
+  type         String    @default("INTERNSHIP")
+  location     String
+  technologies Json      @default("[]")
+  link         String?
+  deadline     DateTime? @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([companyId])
+}
+
+model Community {
+  id                 String             @id @default(uuid())
+  name               String
+  type               String             @default("TECH_COMMUNITY")
+  district           String
+  city               String?
+  leadName           String
+  memberCount        Int                @default(0)
+  description        String             @db.Text
+  technologies       Json               @default("[]")
+  socialLinks        Json               @default("{}")
+  activeEventsCount  Int                @default(0)
+  verificationStatus VerificationStatus @default(VERIFIED)
+  source             String             @default("Karnataka Developer Network")
+  lastUpdated        DateTime           @default(now()) @db.Timestamptz(6)
+  createdAt          DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime           @updatedAt @db.Timestamptz(6)
+
+  @@index([district])
+  @@index([type])
+}
+
+model Hackathon {
+  id                   String             @id @default(uuid())
+  slug                 String             @unique
+  title                String
+  tagline              String
+  organizerId          String?
+  organizerProfile     OrganizerProfile?  @relation(fields: [organizerId], references: [id], onDelete: SetNull)
+  organizerName        String
+  organizerType        String             @default("COLLEGE")
+  verificationStatus   VerificationStatus @default(VERIFIED)
+  status               HackathonStatus    @default(REGISTRATION_OPEN)
+  format               EventFormat        @default(HYBRID)
+  district             String
+  city                 String?
+  locality             String?
+  address              String?
+  latitude             Float
+  longitude            Float
+  description          String             @db.Text
+  theme                Json               @default("[]")
+  technologies         Json               @default("[]")
+  eligibility          String             @db.Text
+  minTeamSize          Int                @default(1)
+  maxTeamSize          Int                @default(4)
+  registrationDeadline DateTime           @db.Timestamptz(6)
+  startDate            DateTime           @db.Timestamptz(6)
+  endDate              DateTime           @db.Timestamptz(6)
+  rules                Json               @default("[]")
+  featured             Boolean            @default(false)
+  registrationCount    Int                @default(0)
+  viewsCount           Int                @default(0)
+  bookmarksCount       Int                @default(0)
+  source               String             @default("Official Portal Sync")
+  lastUpdated          DateTime           @default(now()) @db.Timestamptz(6)
+  createdAt            DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime           @updatedAt @db.Timestamptz(6)
+
+  problemStatements    ProblemStatement[]
+  prizes               Prize[]
+  schedule             ScheduleItem[]
+  registrations        HackathonRegistration[]
+  teams                Team[]
+  submissions          Submission[]
+  announcements        Announcement[]
+  bookmarks            Bookmark[]
+
+  @@index([status])
+  @@index([district])
+  @@index([format])
+  @@index([verificationStatus])
+}
+
+model ProblemStatement {
+  id               String    @id @default(uuid())
+  hackathonId      String
+  hackathon        Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  title            String
+  category         String
+  description      String    @db.Text
+  sponsorOrCompany String?
+  deliverables     Json      @default("[]")
+  trackPrize       String?
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
+
+  submissions      Submission[]
+
+  @@index([hackathonId])
+}
+
+model Prize {
+  id          String    @id @default(uuid())
+  hackathonId String
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  place       String
+  amount      String
+  perks       Json      @default("[]")
+  description String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([hackathonId])
+}
+
+model ScheduleItem {
+  id          String    @id @default(uuid())
+  hackathonId String
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  title       String
+  time        String
+  date        String
+  description String?
+  isCompleted Boolean   @default(false)
+  isCurrent   Boolean   @default(false)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([hackathonId])
+}
+
+model HackathonRegistration {
+  id                 String    @id @default(uuid())
+  hackathonId        String
+  hackathon          Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  studentId          String
+  student            User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teamId             String?
+  team               Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  role               TeamRole  @default(MEMBER)
+  ticketNumber       String    @unique
+  registrationStatus String    @default("CONFIRMED")
+  registeredAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @db.Timestamptz(6)
+
+  @@unique([hackathonId, studentId])
+  @@index([hackathonId])
+  @@index([studentId])
+}
+
+model Team {
+  id           String      @id @default(uuid())
+  hackathonId  String
+  hackathon    Hackathon   @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  maxMembers   Int         @default(4)
+  inviteCode   String      @unique
+  status       String      @default("FORMING")
+  createdAt    DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime    @updatedAt @db.Timestamptz(6)
+
+  members       TeamMember[]
+  invitations   TeamInvitation[]
+  registrations HackathonRegistration[]
+  submissions   Submission[]
+
+  @@unique([hackathonId, name])
+  @@index([hackathonId])
+  @@index([inviteCode])
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  role      TeamRole @default(MEMBER)
+  status    String   @default("ACTIVE")
+  joinedAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([teamId, studentId])
+  @@index([teamId])
+  @@index([studentId])
+}
+
+model TeamInvitation {
+  id                 String   @id @default(uuid())
+  teamId             String
+  team               Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedByUserId    String
+  invitedEmailOrUsn  String
+  expiresAt          DateTime @db.Timestamptz(6)
+  status             String   @default("PENDING")
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([teamId])
+  @@index([invitedEmailOrUsn])
+}
+
+model Submission {
+  id                 String            @id @default(uuid())
+  hackathonId        String
+  hackathon          Hackathon         @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  teamId             String
+  team               Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  problemStatementId String?
+  problemStatement   ProblemStatement? @relation(fields: [problemStatementId], references: [id], onDelete: SetNull)
+  projectTitle       String
+  tagline            String
+  description        String?           @db.Text
+  demoUrl            String?
+  repoUrl            String?
+  submittedAt        DateTime          @default(now()) @db.Timestamptz(6)
+  status             SubmissionStatus  @default(SUBMITTED)
+  score              Float?
+  rank               String?
+  feedback           String?           @db.Text
+  updatedAt          DateTime          @updatedAt @db.Timestamptz(6)
+
+  evaluations        Evaluation[]
+
+  @@unique([hackathonId, teamId])
+  @@index([hackathonId])
+  @@index([teamId])
+}
+
+model Evaluation {
+  id                String     @id @default(uuid())
+  submissionId      String
+  submission        Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  judgeId           String
+  judge             User       @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  score             Float
+  criteriaBreakdown Json       @default("{}")
+  notes             String?    @db.Text
+  createdAt         DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime   @updatedAt @db.Timestamptz(6)
+
+  @@unique([submissionId, judgeId])
+  @@index([submissionId])
+}
+
+model Announcement {
+  id          String    @id @default(uuid())
+  hackathonId String
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  title       String
+  content     String    @db.Text
+  priority    String    @default("NORMAL")
+  publishedAt DateTime  @default(now()) @db.Timestamptz(6)
+  sentToEmail Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([hackathonId])
+  @@index([priority])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("SYSTEM")
+  read      Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([userId, read])
+}
+
+model Bookmark {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hackathonId String
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@unique([userId, hackathonId])
+  @@index([userId])
+}
+
+model VerificationRequest {
+  id                String             @id @default(uuid())
+  entityType        String
+  entityId          String
+  entityName        String
+  submittedBy       String
+  submittedAt       DateTime           @default(now()) @db.Timestamptz(6)
+  documentsProvided Json               @default("[]")
+  currentStatus     VerificationStatus @default(PENDING)
+  notes             String?
+  reviewedBy        String?
+  reviewedAt        DateTime?          @db.Timestamptz(6)
+  createdAt         DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime           @updatedAt @db.Timestamptz(6)
+
+  @@index([currentStatus])
+  @@index([entityType])
+}
+
+model ModerationItem {
+  id              String    @id @default(uuid())
+  itemType        String
+  itemId          String
+  itemTitle       String
+  reason          String    @db.Text
+  reportedBy      String
+  reportedAt      DateTime  @default(now()) @db.Timestamptz(6)
+  status          String    @default("OPEN")
+  resolutionNotes String?   @db.Text
+  resolvedBy      String?
+  resolvedAt      DateTime? @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(6)
+
+  @@index([status])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  action       String
+  performedBy  String
+  targetEntity String
+  targetId     String
+  ipAddress    String?
+  details      Json     @default("{}")
+  timestamp    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([targetEntity, targetId])
+  @@index([action])
+  @@index([timestamp])
+}
+
+model EventOutbox {
+  id          String    @id @default(uuid())
+  eventType   String
+  entityType  String
+  entityId    String
+  payload     Json      @default("{}")
+  status      String    @default("PENDING")
+  scope       String    @default("PUBLIC")
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  processedAt DateTime? @db.Timestamptz(6)
+
+  @@index([status])
+  @@index([createdAt])
+}

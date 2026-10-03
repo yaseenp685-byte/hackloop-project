@@ -1,0 +1,489 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           String          @id @default(cuid())
+  email        String          @unique
+  passwordHash String
+  name         String
+  role         String          @default("STUDENT") // STUDENT | ORGANIZER | ADMIN | JUDGE
+  phone        String?
+  avatarUrl    String?
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  studentProfile   StudentProfile?
+  organizerProfile OrganizerProfile?
+  registrations    HackathonRegistration[]
+  teamMemberships  TeamMember[]
+  notifications    Notification[]
+  bookmarks        Bookmark[]
+  evaluations      Evaluation[]
+
+  @@index([role])
+  @@index([email])
+}
+
+model StudentProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usnOrRollNo        String?  @unique
+  collegeName        String
+  universityName     String?
+  district           String
+  graduationYear     Int
+  degreeBranch       String
+  skills             String   @default("[]") // JSON string array
+  technologies       String   @default("[]") // JSON string array
+  interests          String   @default("[]") // JSON string array
+  githubUrl          String?
+  linkedinUrl        String?
+  portfolioUrl       String?
+  verificationStatus String   @default("VERIFIED") // VERIFIED | PENDING | UNVERIFIED | STALE_NEEDS_UPDATE
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([district])
+  @@index([collegeName])
+}
+
+model OrganizerProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationName   String
+  organizationType   String   @default("COLLEGE") // COLLEGE | UNIVERSITY | COMPANY | COMMUNITY | GOVERNMENT
+  designation        String
+  district           String
+  verificationStatus String   @default("VERIFIED")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  hackathons         Hackathon[]
+
+  @@index([district])
+}
+
+model Institution {
+  id                          String   @id @default(cuid())
+  name                        String
+  shortCode                   String   @unique
+  type                        String   @default("COLLEGE") // COLLEGE | UNIVERSITY | AUTONOMOUS_INSTITUTE
+  universityAffiliation       String?
+  district                    String
+  city                        String?
+  locality                    String?
+  address                     String?
+  pincode                     String?
+  latitude                    Float
+  longitude                   Float
+  establishedYear             Int?
+  websiteUrl                  String?
+  logoUrl                     String?
+  coursesAvailable            String   @default("[]") // JSON string array
+  technologyClubs             String   @default("[]") // JSON array of clubs
+  hackathonsHostedCount       Int      @default(0)
+  hackathonsParticipatedCount Int      @default(0)
+  verificationStatus          String   @default("VERIFIED")
+  source                      String   @default("KSHEC Registry")
+  lastUpdated                 DateTime @default(now())
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  @@index([district])
+  @@index([type])
+  @@index([name])
+}
+
+model Company {
+  id                        String   @id @default(cuid())
+  name                      String
+  logoUrl                   String?
+  websiteUrl                String?
+  industry                  String
+  district                  String
+  city                      String?
+  locality                  String?
+  address                   String?
+  pincode                   String?
+  latitude                  Float
+  longitude                 Float
+  description               String
+  technologyAreas           String   @default("[]") // JSON string array
+  hackathonsSponsoredCount  Int      @default(0)
+  hackathonsOrganizedCount  Int      @default(0)
+  verificationStatus        String   @default("VERIFIED")
+  source                    String   @default("KDEM Partner Directory")
+  lastUpdated               DateTime @default(now())
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  opportunities             CompanyOpportunity[]
+
+  @@index([district])
+  @@index([industry])
+}
+
+model CompanyOpportunity {
+  id           String    @id @default(cuid())
+  companyId    String
+  company      Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title        String
+  type         String    @default("INTERNSHIP") // INTERNSHIP | FULL_TIME | GRANT | MENTORSHIP | CHALLENGE
+  location     String
+  technologies String    @default("[]") // JSON string array
+  link         String?
+  deadline     DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([companyId])
+}
+
+model Community {
+  id                 String   @id @default(cuid())
+  name               String
+  type               String   @default("TECH_COMMUNITY") // STUDENT_CLUB | TECH_COMMUNITY | OPEN_SOURCE | HACKATHON_COMMUNITY
+  district           String
+  city               String?
+  leadName           String
+  memberCount        Int      @default(0)
+  description        String
+  technologies       String   @default("[]") // JSON string array
+  socialLinks        String   @default("{}") // JSON object
+  activeEventsCount  Int      @default(0)
+  verificationStatus String   @default("VERIFIED")
+  source             String   @default("Karnataka Developer Network")
+  lastUpdated        DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([district])
+  @@index([type])
+}
+
+model Hackathon {
+  id                   String   @id @default(cuid())
+  slug                 String   @unique
+  title                String
+  tagline              String
+  organizerId          String?
+  organizerProfile     OrganizerProfile? @relation(fields: [organizerId], references: [id], onDelete: SetNull)
+  organizerName        String
+  organizerType        String   @default("COLLEGE")
+  verificationStatus   String   @default("VERIFIED") // VERIFIED | PENDING | UNVERIFIED | STALE_NEEDS_UPDATE
+  status               String   @default("Registration Open") // Registration Open | Registration Closing Soon | Registration Closed | Event Live | Submission Open | Submission Closed | Judging | Results Published
+  format               String   @default("HYBRID") // ONLINE | OFFLINE | HYBRID
+  district             String
+  city                 String?
+  locality             String?
+  address              String?
+  latitude             Float
+  longitude            Float
+  description          String
+  theme                String   @default("[]") // JSON string array
+  technologies         String   @default("[]") // JSON string array
+  eligibility          String
+  minTeamSize          Int      @default(1)
+  maxTeamSize          Int      @default(4)
+  registrationDeadline DateTime
+  startDate            DateTime
+  endDate              DateTime
+  rules                String   @default("[]") // JSON string array
+  featured             Boolean  @default(false)
+  registrationCount    Int      @default(0)
+  viewsCount           Int      @default(0)
+  bookmarksCount       Int      @default(0)
+  source               String   @default("Official Portal Sync")
+  lastUpdated          DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  problemStatements    ProblemStatement[]
+  prizes               Prize[]
+  schedule             ScheduleItem[]
+  registrations        HackathonRegistration[]
+  teams                Team[]
+  submissions          Submission[]
+  announcements        Announcement[]
+  bookmarks            Bookmark[]
+
+  @@index([status])
+  @@index([district])
+  @@index([format])
+  @@index([verificationStatus])
+}
+
+model ProblemStatement {
+  id               String    @id @default(cuid())
+  hackathonId      String
+  hackathon        Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  title            String
+  category         String
+  description      String
+  sponsorOrCompany String?
+  deliverables     String    @default("[]") // JSON string array
+  trackPrize       String?
+  createdAt        DateTime  @default(now())
+
+  submissions      Submission[]
+
+  @@index([hackathonId])
+}
+
+model Prize {
+  id          String    @id @default(cuid())
+  hackathonId String
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  place       String
+  amount      String
+  perks       String    @default("[]") // JSON string array
+  description String?
+  createdAt   DateTime  @default(now())
+
+  @@index([hackathonId])
+}
+
+model ScheduleItem {
+  id          String    @id @default(cuid())
+  hackathonId String
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  title       String
+  time        String
+  date        String
+  description String?
+  isCompleted Boolean   @default(false)
+  isCurrent   Boolean   @default(false)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+
+  @@index([hackathonId])
+}
+
+model HackathonRegistration {
+  id                 String    @id @default(cuid())
+  hackathonId        String
+  hackathon          Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  studentId          String
+  student            User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teamId             String?
+  team               Team?     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  role               String    @default("MEMBER") // LEADER | MEMBER | INDIVIDUAL
+  ticketNumber       String    @unique
+  registrationStatus String    @default("CONFIRMED") // CONFIRMED | WAITLISTED | ATTENDED | CANCELLED
+  registeredAt       DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([hackathonId, studentId])
+  @@index([hackathonId])
+  @@index([studentId])
+}
+
+model Team {
+  id           String      @id @default(cuid())
+  hackathonId  String
+  hackathon    Hackathon   @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  maxMembers   Int         @default(4)
+  inviteCode   String      @unique
+  status       String      @default("FORMING") // FORMING | READY | SUBMITTED | DISQUALIFIED
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  members       TeamMember[]
+  invitations   TeamInvitation[]
+  registrations HackathonRegistration[]
+  submissions   Submission[]
+
+  @@unique([hackathonId, name])
+  @@index([hackathonId])
+  @@index([inviteCode])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  role      String   @default("MEMBER") // LEADER | MEMBER
+  status    String   @default("ACTIVE") // ACTIVE | PENDING_INVITE
+  joinedAt  DateTime @default(now())
+
+  @@unique([teamId, studentId])
+  @@index([teamId])
+  @@index([studentId])
+}
+
+model TeamInvitation {
+  id                 String   @id @default(cuid())
+  teamId             String
+  team               Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  invitedByUserId    String
+  invitedEmailOrUsn  String
+  expiresAt          DateTime
+  status             String   @default("PENDING") // PENDING | ACCEPTED | DECLINED
+  createdAt          DateTime @default(now())
+
+  @@index([teamId])
+  @@index([invitedEmailOrUsn])
+}
+
+model Submission {
+  id                 String            @id @default(cuid())
+  hackathonId        String
+  hackathon          Hackathon         @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  teamId             String
+  team               Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  problemStatementId String?
+  problemStatement   ProblemStatement? @relation(fields: [problemStatementId], references: [id], onDelete: SetNull)
+  projectTitle       String
+  tagline            String
+  description        String?
+  demoUrl            String?
+  repoUrl            String?
+  submittedAt        DateTime          @default(now())
+  status             String            @default("SUBMITTED") // SUBMITTED | UNDER_REVIEW | SHORTLISTED | FINALIST | WINNER | PARTICIPANT
+  score              Float?
+  rank               String?
+  feedback           String?
+  updatedAt          DateTime          @updatedAt
+
+  evaluations        Evaluation[]
+
+  @@unique([hackathonId, teamId])
+  @@index([hackathonId])
+  @@index([teamId])
+}
+
+model Evaluation {
+  id                String     @id @default(cuid())
+  submissionId      String
+  submission        Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  judgeId           String
+  judge             User       @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  score             Float
+  criteriaBreakdown String     @default("{}") // JSON score weights
+  notes             String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@unique([submissionId, judgeId])
+  @@index([submissionId])
+}
+
+model Announcement {
+  id          String    @id @default(cuid())
+  hackathonId String
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  title       String
+  content     String
+  priority    String    @default("NORMAL") // NORMAL | HIGH | URGENT
+  publishedAt DateTime  @default(now())
+  sentToEmail Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([hackathonId])
+  @@index([priority])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("SYSTEM") // DEADLINE | INVITATION | RESULT | ANNOUNCEMENT | SYSTEM
+  read      Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+}
+
+model Bookmark {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hackathonId String
+  hackathon   Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, hackathonId])
+  @@index([userId])
+}
+
+model VerificationRequest {
+  id                String   @id @default(cuid())
+  entityType        String // HACKATHON | ORGANIZER | INSTITUTION | COMPANY | STUDENT_LEADER
+  entityId          String
+  entityName        String
+  submittedBy       String
+  submittedAt       DateTime @default(now())
+  documentsProvided String   @default("[]") // JSON string array
+  currentStatus     String   @default("PENDING") // PENDING | VERIFIED | REJECTED | STALE_NEEDS_UPDATE
+  notes             String?
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([currentStatus])
+  @@index([entityType])
+}
+
+model ModerationItem {
+  id              String    @id @default(cuid())
+  itemType        String // HACKATHON_LISTING | ANNOUNCEMENT | USER_PROFILE | TEAM_NAME
+  itemId          String
+  itemTitle       String
+  reason          String
+  reportedBy      String
+  reportedAt      DateTime  @default(now())
+  status          String    @default("OPEN") // OPEN | RESOLVED | DISMISSED
+  resolutionNotes String?
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  action       String
+  performedBy  String
+  targetEntity String
+  targetId     String
+  ipAddress    String?
+  details      String   @default("{}") // JSON object
+  timestamp    DateTime @default(now())
+
+  @@index([targetEntity, targetId])
+  @@index([action])
+  @@index([timestamp])
+}
+
+model EventOutbox {
+  id          String    @id @default(cuid())
+  eventType   String // HACKATHON_CREATED | HACKATHON_STATUS_CHANGED | REGISTRATION_UPDATE | etc.
+  entityType  String
+  entityId    String
+  payload     String    @default("{}") // JSON payload
+  status      String    @default("PENDING") // PENDING | PROCESSED | FAILED
+  scope       String    @default("PUBLIC") // PUBLIC | ROLE_STUDENT | ROLE_ORGANIZER | ROLE_ADMIN
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+}
