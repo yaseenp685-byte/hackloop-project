@@ -91,6 +91,15 @@ export const Navbar: React.FC = () => {
             {/* Notifications for logged-in preview */}
             <NotificationPanel notifications={MOCK_STUDENT_NOTIFICATIONS} />
 
+            {/* Sign Up Direct Action Button */}
+            <Link
+              href="/signup"
+              className="hidden md:inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 hover:border-brand-500 hover:text-brand-600 text-xs sm:text-sm font-semibold transition-all shadow-2xs"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>Sign Up</span>
+            </Link>
+
             {/* 3 Primary Login Experiences Dropdown */}
             <div className="relative">
               <button
@@ -108,16 +117,42 @@ export const Navbar: React.FC = () => {
 
               {loginDropdownOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-64 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-xl z-50 p-2 text-xs divide-y divide-neutral-100 dark:divide-neutral-800"
+                  className="absolute right-0 mt-2 w-72 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-xl z-50 p-2 text-xs divide-y divide-neutral-100 dark:divide-neutral-800"
                   onMouseLeave={() => setLoginDropdownOpen(false)}
                 >
-                  <div className="p-2">
+                  <div className="p-2 flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">
-                      Sign In / Access Dashboards
+                      Sign In & Accounts
                     </span>
+                    <Link
+                      href="/signup"
+                      onClick={() => setLoginDropdownOpen(false)}
+                      className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <span>Create Account</span>
+                    </Link>
                   </div>
 
                   <div className="py-1 space-y-1">
+                    {/* Unified Auth */}
+                    <Link
+                      href="/login"
+                      onClick={() => setLoginDropdownOpen(false)}
+                      className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors text-neutral-800 dark:text-neutral-200 font-medium"
+                    >
+                      <div className="p-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold flex items-center gap-1">
+                          <span>Unified Sign In / Sign Up</span>
+                          <span className="px-1 py-0.2 bg-brand-100 dark:bg-brand-900/60 text-brand-700 dark:text-brand-300 text-[9px] font-bold rounded">New</span>
+                        </div>
+                        <div className="text-[10px] text-neutral-500">Quick tab switcher & database auth</div>
+                      </div>
+                    </Link>
+
                     {/* Student Login */}
                     <Link
                       href="/login/student"
@@ -201,28 +236,48 @@ export const Navbar: React.FC = () => {
             ))}
           </div>
 
-          <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 grid grid-cols-3 gap-2">
-            <Link
-              href="/login/student"
-              onClick={() => setMobileMenuOpen(false)}
-              className="p-2 text-center rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 text-xs font-semibold"
-            >
-              Student
-            </Link>
-            <Link
-              href="/login/organizer"
-              onClick={() => setMobileMenuOpen(false)}
-              className="p-2 text-center rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 text-xs font-semibold"
-            >
-              Organizer
-            </Link>
-            <Link
-              href="/login/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="p-2 text-center rounded-xl bg-red-50 dark:bg-red-950/50 text-red-800 dark:text-red-300 text-xs font-semibold"
-            >
-              Admin
-            </Link>
+          <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2.5 px-3 text-center rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-bold"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/signup"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-2.5 px-3 text-center rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold flex items-center justify-center gap-1"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Create Account</span>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <Link
+                href="/login/student"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 text-center rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 text-[11px] font-semibold"
+              >
+                Student
+              </Link>
+              <Link
+                href="/login/organizer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 text-center rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 text-[11px] font-semibold"
+              >
+                Organizer
+              </Link>
+              <Link
+                href="/login/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 text-center rounded-xl bg-red-50 dark:bg-red-950/50 text-red-800 dark:text-red-300 text-[11px] font-semibold"
+              >
+                Admin
+              </Link>
+            </div>
           </div>
         </div>
       )}

@@ -20,7 +20,7 @@ export class AdminService {
       prisma.user.count(),
       prisma.studentProfile.count(),
       prisma.organizerProfile.count(),
-   
+      prisma.hackathon.count(),
       prisma.institution.count(),
       prisma.company.count(),
       prisma.community.count(),

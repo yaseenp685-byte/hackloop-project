@@ -54,6 +54,69 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class ApiService {
   /**
+   * AUTHENTICATION SERVICES
+   */
+  static async login(credentials: { email: string; password: string }) {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error?.message || "Failed to sign in. Please verify your credentials.");
+    }
+    return data.data;
+  }
+
+  static async register(payload: {
+    email: string;
+    password: string;
+    name: string;
+    role: "STUDENT" | "ORGANIZER" | "ADMIN" | "JUDGE";
+    phone?: string;
+    usnOrRollNo?: string;
+    collegeName?: string;
+    universityName?: string;
+    district?: string;
+    graduationYear?: number;
+    degreeBranch?: string;
+    organizationName?: string;
+    organizationType?: string;
+    designation?: string;
+  }) {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error?.message || "Registration failed. Please check your details.");
+    }
+    return data.data;
+  }
+
+  static async getCurrentUser() {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.success ? data.data : null;
+    } catch {
+      return null;
+    }
+  }
+
+  static async logout() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // ignore
+    }
+  }
+
+  /**
    * UNIVERSAL SEARCH ENGINE
    * Discovers hackathons, colleges, universities, companies, and communities across Karnataka
    */
