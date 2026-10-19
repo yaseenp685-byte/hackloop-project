@@ -4,6 +4,8 @@ import { UpdateStatusSchema } from "@/lib/validation/hackathon.schema";
 import { authenticateRequest, requireRole } from "@/lib/auth/middleware";
 import { handleApiError } from "@/lib/errors/AppError";
 
+export const dynamic = "force-dynamic";
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }

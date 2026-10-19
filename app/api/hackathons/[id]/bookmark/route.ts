@@ -3,6 +3,8 @@ import { authenticateRequest } from "@/lib/auth/middleware";
 import { handleApiError, AppError } from "@/lib/errors/AppError";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }

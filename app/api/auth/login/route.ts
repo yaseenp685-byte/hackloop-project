@@ -3,6 +3,8 @@ import { AuthService } from "@/lib/services/auth.service";
 import { LoginSchema } from "@/lib/validation/auth.schema";
 import { handleApiError } from "@/lib/errors/AppError";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

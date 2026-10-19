@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { AdminService } from "@/lib/services/admin.service";
 import { handleApiError } from "@/lib/errors/AppError";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const health = await AdminService.getHealth();

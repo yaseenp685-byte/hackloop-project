@@ -3,6 +3,8 @@ import { HackathonService } from "@/lib/services/hackathon.service";
 import { authenticateRequest } from "@/lib/auth/middleware";
 import { handleApiError } from "@/lib/errors/AppError";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }

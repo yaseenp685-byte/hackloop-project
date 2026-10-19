@@ -3,6 +3,8 @@ import { authenticateRequest } from "@/lib/auth/middleware";
 import { AuthService } from "@/lib/services/auth.service";
 import { handleApiError } from "@/lib/errors/AppError";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const user = await authenticateRequest(req);

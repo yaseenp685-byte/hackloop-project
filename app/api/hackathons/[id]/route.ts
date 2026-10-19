@@ -4,6 +4,8 @@ import { authenticateRequest, requireRole } from "@/lib/auth/middleware";
 import { handleApiError, AppError } from "@/lib/errors/AppError";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }

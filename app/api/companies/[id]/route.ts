@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { CompanyService } from "@/lib/services/company.service";
 import { handleApiError } from "@/lib/errors/AppError";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }

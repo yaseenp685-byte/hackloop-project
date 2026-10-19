@@ -4,6 +4,8 @@ import { CreateSubmissionSchema } from "@/lib/validation/submission.schema";
 import { authenticateRequest } from "@/lib/auth/middleware";
 import { handleApiError } from "@/lib/errors/AppError";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
