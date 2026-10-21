@@ -41,6 +41,14 @@ export async function authenticateRequest(req: NextRequest): Promise<TokenPayloa
   return payload;
 }
 
+export async function optionalAuthenticateRequest(req: NextRequest): Promise<TokenPayload | null> {
+  try {
+    return await authenticateRequest(req);
+  } catch {
+    return null;
+  }
+}
+
 export function requireRole(user: TokenPayload, allowedRoles: string[]) {
   if (!allowedRoles.includes(user.role)) {
     throw AppError.forbidden(

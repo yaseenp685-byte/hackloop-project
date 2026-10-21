@@ -19,6 +19,9 @@ import {
   Sparkles,
   Award,
   ChevronDown,
+  UserPlus,
+  FolderGit2,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,11 +34,12 @@ export const Navbar: React.FC = () => {
   const isAdminRoute = pathname?.startsWith("/admin");
 
   const NAV_LINKS = [
-    { label: "Search Engine", href: "/search", icon: <Search className="w-4 h-4" /> },
     { label: "Hackathons", href: "/search?category=HACKATHONS", icon: <Award className="w-4 h-4" /> },
-    { label: "Colleges & Unis", href: "/institutions", icon: <GraduationCap className="w-4 h-4" /> },
+    { label: "Find a Team", href: "/teams", icon: <UserPlus className="w-4 h-4" /> },
+    { label: "Projects", href: "/projects", icon: <FolderGit2 className="w-4 h-4" /> },
+    { label: "Opportunities", href: "/opportunities", icon: <Briefcase className="w-4 h-4" /> },
+    { label: "Institutions", href: "/institutions", icon: <GraduationCap className="w-4 h-4" /> },
     { label: "Companies", href: "/companies", icon: <Building className="w-4 h-4" /> },
-    { label: "Communities", href: "/communities", icon: <Users className="w-4 h-4" /> },
   ];
 
   return (

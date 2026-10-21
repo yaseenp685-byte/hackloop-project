@@ -313,4 +313,379 @@ export class TeamService {
       createdAt: team.createdAt.toISOString(),
     };
   }
+
+  static async listRecruitingTeams(params: { role?: string; search?: string; hackathonId?: string }, currentUserId?: string) {
+    const where: any = {
+      isOpenForMembers: true,
+      status: { in: ["FORMING", "READY"] },
+    };
+
+    if (params.hackathonId) {
+      where.hackathonId = params.hackathonId;
+    }
+
+    if (params.search && params.search.trim()) {
+      const q = params.search.trim();
+      where.OR = [
+        { name: { contains: q } },
+        { projectIdea: { contains: q } },
+        { requiredRoles: { contains: q } },
+        { hackathon: { title: { contains: q } } },
+      ];
+    }
+
+    if (params.role && params.role !== "ALL") {
+      where.requiredRoles = { contains: params.role };
+    }
+
+    const teams = await prisma.team.findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+      include: {
+        hackathon: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            district: true,
+            format: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
+        members: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                name: true,
+                role: true,
+                studentProfile: {
+                  select: {
+                    collegeName: true,
+                    skills: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        joinRequests: {
+          where: { userId: currentUserId || "ANONYMOUS" },
+          select: { id: true, status: true, role: true },
+        },
+      },
+    });
+
+    return teams.map((t) => {
+      let parsedRoles: string[] = [];
+      try {
+        parsedRoles = JSON.parse(t.requiredRoles || "[]");
+      } catch {
+        parsedRoles = [];
+      }
+
+      const leader = t.members.find((m) => m.role === "LEADER") || t.members[0];
+      const isLeader = currentUserId ? leader?.studentId === currentUserId : false;
+      const isMember = currentUserId ? t.members.some((m) => m.studentId === currentUserId) : false;
+      const myRequest = currentUserId && (t.joinRequests as any[])?.length > 0 ? (t.joinRequests as any[])[0] : null;
+
+      return {
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        projectIdea: t.projectIdea,
+        requiredRoles: parsedRoles,
+        isOpenForMembers: t.isOpenForMembers,
+        maxMembers: t.maxMembers,
+        currentMembersCount: t.members.length,
+        hackathon: t.hackathon,
+        leader: leader
+          ? {
+              id: leader.student.id,
+              name: leader.student.name,
+              college: leader.student.studentProfile?.collegeName || "Karnataka Tech Institute",
+            }
+          : null,
+        members: t.members.map((m) => ({
+          id: m.student.id,
+          name: m.student.name,
+          role: m.role,
+          college: m.student.studentProfile?.collegeName || "Karnataka Tech Institute",
+        })),
+        isLeader,
+        isMember,
+        myRequestStatus: myRequest ? myRequest.status : null,
+        createdAt: t.createdAt.toISOString(),
+      };
+    });
+  }
+
+  static async requestToJoin(studentUserId: string, data: { teamId: string; role: string; message?: string }) {
+    const team = await prisma.team.findUnique({
+      where: { id: data.teamId },
+      include: {
+        hackathon: true,
+        members: true,
+      },
+    });
+
+    if (!team) {
+      throw AppError.notFound("Team not found.");
+    }
+
+    if (!team.isOpenForMembers) {
+      throw AppError.badRequest("This team is currently not accepting new members.");
+    }
+
+    if (team.members.length >= team.maxMembers) {
+      throw AppError.badRequest("This team has already reached its maximum member limit.");
+    }
+
+    // Check if user is already a member
+    const existingMember = team.members.find((m) => m.studentId === studentUserId);
+    if (existingMember) {
+      throw AppError.badRequest("You are already a member of this team.");
+    }
+
+    // Check if user already belongs to another team in this hackathon
+    const anotherTeamMember = await prisma.teamMember.findFirst({
+      where: {
+        studentId: studentUserId,
+        team: { hackathonId: team.hackathonId },
+      },
+      include: { team: true },
+    });
+
+    if (anotherTeamMember) {
+      throw AppError.badRequest(
+        `You are already in team "${anotherTeamMember.team.name}" for this hackathon.`
+      );
+    }
+
+    // Check existing request
+    const existingReq = await prisma.teamJoinRequest.findUnique({
+      where: {
+        teamId_userId: {
+          teamId: data.teamId,
+          userId: studentUserId,
+        },
+      },
+    });
+
+    if (existingReq) {
+      if (existingReq.status === "PENDING") {
+        throw AppError.conflict("You already have a pending join request for this team.");
+      }
+      // If previously rejected, allow re-requesting by updating status
+      const updated = await prisma.teamJoinRequest.update({
+        where: { id: existingReq.id },
+        data: {
+          status: "PENDING",
+          role: data.role,
+          message: data.message,
+        },
+      });
+      return updated;
+    }
+
+    const request = await prisma.teamJoinRequest.create({
+      data: {
+        teamId: data.teamId,
+        userId: studentUserId,
+        role: data.role,
+        message: data.message,
+        status: "PENDING",
+      },
+      include: {
+        user: { select: { name: true } },
+      },
+    });
+
+    // Notify team leader
+    const leader = team.members.find((m) => m.role === "LEADER") || team.members[0];
+    if (leader) {
+      await prisma.notification.create({
+        data: {
+          userId: leader.studentId,
+          title: `Join Request: ${team.name}`,
+          message: `${request.user.name} requested to join ${team.name} as ${data.role}.`,
+          type: "INVITATION",
+          linkUrl: `/teams`,
+        },
+      });
+    }
+
+    return request;
+  }
+
+  static async handleJoinRequest(leaderUserId: string, requestId: string, action: "ACCEPT" | "REJECT") {
+    const request = await prisma.teamJoinRequest.findUnique({
+      where: { id: requestId },
+      include: {
+        team: {
+          include: {
+            members: true,
+            hackathon: true,
+          },
+        },
+        user: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+
+    if (!request) {
+      throw AppError.notFound("Join request not found.");
+    }
+
+    const isLeader = request.team.members.some(
+      (m) => m.studentId === leaderUserId && m.role === "LEADER"
+    );
+
+    if (!isLeader) {
+      throw AppError.forbidden("Only the team leader can accept or reject join requests.");
+    }
+
+    if (request.status !== "PENDING") {
+      throw AppError.badRequest(`This request is already marked as ${request.status}.`);
+    }
+
+    if (action === "REJECT") {
+      const updated = await prisma.teamJoinRequest.update({
+        where: { id: requestId },
+        data: { status: "REJECTED" },
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: request.userId,
+          title: `Team Update: ${request.team.name}`,
+          message: `Your request to join ${request.team.name} was not accepted at this time.`,
+          type: "SYSTEM_ALERT",
+          linkUrl: `/teams`,
+        },
+      });
+
+      return updated;
+    }
+
+    // Action is ACCEPT
+    if (request.team.members.length >= request.team.maxMembers) {
+      throw AppError.badRequest("Team is already at maximum capacity.");
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedReq = await tx.teamJoinRequest.update({
+        where: { id: requestId },
+        data: { status: "ACCEPTED" },
+      });
+
+      await tx.teamMember.create({
+        data: {
+          teamId: request.teamId,
+          studentId: request.userId,
+          role: "MEMBER",
+          status: "ACTIVE",
+        },
+      });
+
+      // Update or create hackathon registration
+      const reg = await tx.hackathonRegistration.findUnique({
+        where: {
+          hackathonId_studentId: {
+            hackathonId: request.team.hackathonId,
+            studentId: request.userId,
+          },
+        },
+      });
+
+      if (reg) {
+        await tx.hackathonRegistration.update({
+          where: { id: reg.id },
+          data: {
+            teamId: request.teamId,
+            role: "MEMBER",
+          },
+        });
+      } else {
+        const ticketNumber = `KAR-${request.team.hackathon.slug.slice(0, 4).toUpperCase()}-2026-${Math.floor(100 + Math.random() * 900)}`;
+        await tx.hackathonRegistration.create({
+          data: {
+            hackathonId: request.team.hackathonId,
+            studentId: request.userId,
+            teamId: request.teamId,
+            role: "MEMBER",
+            ticketNumber,
+            registrationStatus: "CONFIRMED",
+          },
+        });
+        await tx.hackathon.update({
+          where: { id: request.team.hackathonId },
+          data: { registrationCount: { increment: 1 } },
+        });
+      }
+
+      // Close team if reached capacity
+      if (request.team.members.length + 1 >= request.team.maxMembers) {
+        await tx.team.update({
+          where: { id: request.teamId },
+          data: { isOpenForMembers: false },
+        });
+      }
+
+      await tx.notification.create({
+        data: {
+          userId: request.userId,
+          title: `Welcome to ${request.team.name}!`,
+          message: `Your request to join ${request.team.name} has been approved! You are now part of the team.`,
+          type: "INVITATION",
+          linkUrl: `/dashboard/student?tab=teams`,
+        },
+      });
+
+      return updatedReq;
+    });
+
+    return result;
+  }
+
+  static async updateRecruitment(
+    leaderUserId: string,
+    data: {
+      teamId: string;
+      projectIdea?: string;
+      requiredRoles?: string[];
+      isOpenForMembers?: boolean;
+    }
+  ) {
+    const team = await prisma.team.findUnique({
+      where: { id: data.teamId },
+      include: { members: true },
+    });
+
+    if (!team) {
+      throw AppError.notFound("Team not found.");
+    }
+
+    const isLeader = team.members.some(
+      (m) => m.studentId === leaderUserId && m.role === "LEADER"
+    );
+
+    if (!isLeader) {
+      throw AppError.forbidden("Only the team leader can update recruitment settings.");
+    }
+
+    const updateData: any = {};
+    if (data.projectIdea !== undefined) updateData.projectIdea = data.projectIdea;
+    if (data.requiredRoles !== undefined) updateData.requiredRoles = JSON.stringify(data.requiredRoles);
+    if (data.isOpenForMembers !== undefined) updateData.isOpenForMembers = data.isOpenForMembers;
+
+    const updated = await prisma.team.update({
+      where: { id: data.teamId },
+      data: updateData,
+    });
+
+    return updated;
+  }
 }

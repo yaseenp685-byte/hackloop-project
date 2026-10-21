@@ -21,11 +21,11 @@ function SearchPageContent() {
   const locationHook = useLocation();
 
   // Search Query & Filters
-  const initialQuery = searchParams.get("q") || "";
-  const initialCategory = (searchParams.get("category") as SearchCategory) || "ALL";
-  const initialDistrict = searchParams.get("district") || undefined;
-  const initialRadius = searchParams.get("radius") ? Number(searchParams.get("radius")) : undefined;
-  const initialTech = searchParams.get("tech") ? [searchParams.get("tech")!] : [];
+  const initialQuery = searchParams?.get("q") || "";
+  const initialCategory = (searchParams?.get("category") as SearchCategory) || "ALL";
+  const initialDistrict = searchParams?.get("district") || undefined;
+  const initialRadius = searchParams?.get("radius") ? Number(searchParams?.get("radius")) : undefined;
+  const initialTech = searchParams?.get("tech") ? [searchParams?.get("tech")!] : [];
 
   const [query, setQuery] = useState(initialQuery);
   const [filters, setFilters] = useState<SearchFilterState>({
@@ -203,6 +203,33 @@ function SearchPageContent() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Quick Filter Chips */}
+        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mr-1">Quick Filters:</span>
+          {[
+            { label: "All Items", active: filters.category === "ALL" && filters.sortBy === "relevance" && !filters.district, onClick: handleResetFilters },
+            { label: "Closing Soon 🔥", active: filters.sortBy === "deadline_soon", onClick: () => { setFilters((prev) => ({ ...prev, sortBy: "deadline_soon", category: "HACKATHONS" })); setCurrentPage(1); } },
+            { label: "Hackathons Only", active: filters.category === "HACKATHONS" && filters.sortBy !== "deadline_soon", onClick: () => { setFilters((prev) => ({ ...prev, category: "HACKATHONS" })); setCurrentPage(1); } },
+            { label: "Colleges & Unis", active: filters.category === "COLLEGES", onClick: () => { setFilters((prev) => ({ ...prev, category: "COLLEGES" })); setCurrentPage(1); } },
+            { label: "Bengaluru", active: filters.district === "Bengaluru Urban", onClick: () => { setFilters((prev) => ({ ...prev, district: "Bengaluru Urban" })); setCurrentPage(1); } },
+            { label: "Mysuru", active: filters.district === "Mysuru", onClick: () => { setFilters((prev) => ({ ...prev, district: "Mysuru" })); setCurrentPage(1); } },
+          ].map((chip, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={chip.onClick}
+              className={cn(
+                "px-2.5 py-1 rounded-full text-xs font-semibold transition-colors",
+                chip.active
+                  ? "bg-brand-600 text-white shadow-2xs"
+                  : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+              )}
+            >
+              {chip.label}
+            </button>
+          ))}
         </div>
       </div>
 

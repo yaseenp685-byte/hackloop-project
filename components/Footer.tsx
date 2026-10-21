@@ -38,6 +38,21 @@ export const Footer: React.FC = () => {
                 </Link>
               </li>
               <li>
+                <Link href="/teams" className="hover:text-brand-600 transition-colors">
+                  Find a Team (Recruitment)
+                </Link>
+              </li>
+              <li>
+                <Link href="/projects" className="hover:text-brand-600 transition-colors">
+                  Student Project Showcase
+                </Link>
+              </li>
+              <li>
+                <Link href="/opportunities" className="hover:text-brand-600 transition-colors">
+                  Internships & Opportunities
+                </Link>
+              </li>
+              <li>
                 <Link href="/institutions" className="hover:text-brand-600 transition-colors">
                   Colleges & Universities
                 </Link>

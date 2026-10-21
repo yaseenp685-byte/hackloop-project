@@ -43,8 +43,8 @@ export const AuthCard: React.FC<AuthCardProps> = ({
   const searchParams = useSearchParams();
 
   // URL query params can override initial tab and role
-  const urlTab = searchParams.get("tab") === "signup" ? "signup" : searchParams.get("tab") === "signin" ? "signin" : initialTab;
-  const urlRole = searchParams.get("role")?.toUpperCase() === "ORGANIZER" ? "ORGANIZER" : initialRole;
+  const urlTab = searchParams?.get("tab") === "signup" ? "signup" : searchParams?.get("tab") === "signin" ? "signin" : initialTab;
+  const urlRole = searchParams?.get("role")?.toUpperCase() === "ORGANIZER" ? "ORGANIZER" : initialRole;
 
   const [activeTab, setActiveTab] = useState<"signin" | "signup">(urlTab);
   const [role, setRole] = useState<"STUDENT" | "ORGANIZER">(urlRole);

@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { UnifiedSearchResultItem } from "@/types/search";
 import { VerificationBadge } from "./VerificationBadge";
 import { StatusBadge } from "./StatusBadge";
 import { formatRelativeTime } from "@/lib/utils";
-import { MapPin, Calendar, Clock, ExternalLink, Database, Tag } from "lucide-react";
+import { MapPin, Calendar, Clock, ExternalLink, Database, Tag, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SearchResultCardProps {
@@ -16,7 +17,36 @@ export const SearchResultCard: React.FC<SearchResultCardProps> = ({
   item,
   viewMode = "list",
 }) => {
+  const router = useRouter();
   const isGrid = viewMode === "grid";
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+
+  const handleBookmarkToggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (bookmarkLoading) return;
+    setBookmarkLoading(true);
+
+    try {
+      const res = await fetch(`/api/hackathons/${item.id}/bookmark`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+      const data = await res.json();
+      if (data.success) {
+        setIsBookmarked(data.data.bookmarked);
+      }
+    } catch {
+      // silent fallback
+    } finally {
+      setBookmarkLoading(false);
+    }
+  };
 
   return (
     <div
@@ -120,13 +150,31 @@ export const SearchResultCard: React.FC<SearchResultCardProps> = ({
 
       {/* Action CTA */}
       <div className={cn("mt-4 shrink-0 flex items-center justify-end sm:flex-col sm:justify-start gap-2", !isGrid && "sm:mt-0")}>
-        <Link
-          href={item.actionUrl}
-          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:bg-brand-600 dark:hover:bg-brand-500 hover:text-white transition-all shadow-xs"
-        >
-          <span>View Details</span>
-          <ExternalLink className="w-3.5 h-3.5" />
-        </Link>
+        <div className="flex items-center gap-2">
+          {item.category === "HACKATHONS" && (
+            <button
+              type="button"
+              onClick={handleBookmarkToggle}
+              disabled={bookmarkLoading}
+              title={isBookmarked ? "Remove Bookmark" : "Save / Bookmark"}
+              className={cn(
+                "p-2 rounded-xl border text-xs font-semibold transition-colors flex items-center justify-center",
+                isBookmarked
+                  ? "bg-brand-50 border-brand-500 text-brand-600 dark:bg-brand-950/60 dark:text-brand-300"
+                  : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-brand-500 hover:text-brand-600"
+              )}
+            >
+              <Bookmark className={cn("w-4 h-4", isBookmarked && "fill-brand-600 text-brand-600")} />
+            </button>
+          )}
+          <Link
+            href={item.actionUrl}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 hover:bg-brand-600 dark:hover:bg-brand-500 hover:text-white transition-all shadow-xs"
+          >
+            <span>View Details</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
+        </div>
       </div>
     </div>
   );

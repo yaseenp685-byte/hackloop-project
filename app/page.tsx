@@ -29,6 +29,11 @@ import {
   Shield,
   Layers,
   Code2,
+  FolderGit2,
+  Briefcase,
+  Heart,
+  ExternalLink,
+  UserPlus,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -40,6 +45,7 @@ export default function LandingPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [featuredProject, setFeaturedProject] = useState<any>(null);
 
   useEffect(() => {
     ApiService.getHackathons().then((res) => {
@@ -47,6 +53,15 @@ export default function LandingPage() {
         setFeaturedHackathons(res.data.data.slice(0, 3));
       }
     });
+
+    fetch("/api/projects?limit=1&sort=likes")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.data?.length > 0) {
+          setFeaturedProject(json.data[0]);
+        }
+      })
+      .catch(() => {});
 
     ApiService.getInstitutions().then((res) => {
       if (res.success && res.data) {
@@ -204,6 +219,63 @@ export default function LandingPage() {
               <span>Publish Hackathon (Organizers)</span>
             </Link>
           </div>
+
+          {/* High-Value Ecosystem Feature Cards */}
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 text-left">
+            <Link
+              href="/teams"
+              className="group p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-brand-500 dark:hover:border-brand-500 shadow-2xs hover:shadow-md transition-all flex items-start gap-3.5"
+            >
+              <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 shrink-0">
+                <UserPlus className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-bold text-sm text-neutral-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors flex items-center gap-1">
+                  <span>Find a Team</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
+                  Recruit peers or request to join teams by role (Frontend, Backend, AI/ML, UI/UX).
+                </p>
+              </div>
+            </Link>
+
+            <Link
+              href="/projects"
+              className="group p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-brand-500 dark:hover:border-brand-500 shadow-2xs hover:shadow-md transition-all flex items-start gap-3.5"
+            >
+              <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-300 shrink-0">
+                <FolderGit2 className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-bold text-sm text-neutral-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors flex items-center gap-1">
+                  <span>Project Showcase</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
+                  Browse top student builds, open-source repos, and upvoted state hackathon winners.
+                </p>
+              </div>
+            </Link>
+
+            <Link
+              href="/opportunities"
+              className="group p-4 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-brand-500 dark:hover:border-brand-500 shadow-2xs hover:shadow-md transition-all flex items-start gap-3.5"
+            >
+              <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-300 shrink-0">
+                <Briefcase className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-bold text-sm text-neutral-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors flex items-center gap-1">
+                  <span>Opportunities &amp; Grants</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
+                  Verified internships, fellowships, and grand coding challenges from partner companies.
+                </p>
+              </div>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -279,6 +351,61 @@ export default function LandingPage() {
             />
           ))}
         </div>
+
+        {/* Weekly Featured Project Spotlight */}
+        {featuredProject && (
+          <div className="mt-12 p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-neutral-900 via-neutral-950 to-black text-white border border-neutral-800 shadow-xl relative overflow-hidden">
+            <div className="absolute right-0 top-0 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+              <div className="space-y-3 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span>Weekly Featured Project</span>
+                  </span>
+                  <span className="text-xs text-neutral-400">
+                    Category: {featuredProject.category?.replace("_", " ")}
+                  </span>
+                </div>
+
+                <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                  <Link href={`/projects/${featuredProject.id}`} className="hover:text-brand-300 transition-colors">
+                    {featuredProject.title}
+                  </Link>
+                </h3>
+
+                <p className="text-xs sm:text-sm text-neutral-300 max-w-2xl leading-relaxed">
+                  {featuredProject.tagline}
+                </p>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-400 pt-1">
+                  <span>By <strong className="text-white">{featuredProject.author?.name}</strong> ({featuredProject.author?.college})</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-red-400">
+                    <Heart className="w-3 h-3 fill-red-400" />
+                    {featuredProject.likesCount} upvotes
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch md:items-center gap-3 shrink-0">
+                <Link
+                  href={`/projects/${featuredProject.id}`}
+                  className="px-5 py-3 rounded-2xl bg-white text-neutral-900 hover:bg-neutral-100 font-bold text-xs sm:text-sm text-center shadow-md transition-all flex items-center justify-center gap-1.5"
+                >
+                  <span>Explore Project</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/projects"
+                  className="px-5 py-3 rounded-2xl border border-neutral-700 hover:border-neutral-500 text-white font-semibold text-xs sm:text-sm text-center transition-all"
+                >
+                  <span>Browse All Builds</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* TECHNOLOGY FILTERS & TOPIC CATEGORIES */}

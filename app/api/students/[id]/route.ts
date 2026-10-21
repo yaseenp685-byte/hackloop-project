@@ -12,7 +12,42 @@ export async function GET(
     const student = await prisma.studentProfile.findFirst({
       where: { OR: [{ id: params.id }, { userId: params.id }] },
       include: {
-        user: { select: { id: true, name: true, email: true, avatarUrl: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+            projects: {
+              orderBy: { createdAt: "desc" },
+              select: {
+                id: true,
+                title: true,
+                tagline: true,
+                category: true,
+                technologies: true,
+                likesCount: true,
+                repoUrl: true,
+                demoUrl: true,
+              },
+            },
+            registrations: {
+              orderBy: { registeredAt: "desc" },
+              include: {
+                hackathon: {
+                  select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    startDate: true,
+                    format: true,
+                    district: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -24,8 +59,10 @@ export async function GET(
       success: true,
       data: {
         id: student.id,
+        userId: student.userId,
         name: student.user.name,
         email: student.user.email,
+        bio: student.bio || "",
         usnOrRollNo: student.usnOrRollNo || "",
         collegeName: student.collegeName,
         universityName: student.universityName || "",
@@ -39,6 +76,29 @@ export async function GET(
         linkedinUrl: student.linkedinUrl || "",
         portfolioUrl: student.portfolioUrl || "",
         verificationStatus: student.verificationStatus,
+        projects: student.user.projects.map((p) => {
+          let techs = [];
+          try {
+            techs = JSON.parse(p.technologies);
+          } catch {
+            techs = [];
+          }
+          return {
+            ...p,
+            technologies: techs,
+          };
+        }),
+        hackathons: student.user.registrations.map((r) => ({
+          id: r.hackathon.id,
+          title: r.hackathon.title,
+          slug: r.hackathon.slug,
+          startDate: r.hackathon.startDate.toISOString(),
+          mode: r.hackathon.format,
+          district: r.hackathon.district,
+          role: r.role,
+          registrationStatus: r.registrationStatus,
+          ticketNumber: r.ticketNumber,
+        })),
       },
     });
   } catch (error) {

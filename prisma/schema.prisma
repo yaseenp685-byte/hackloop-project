@@ -27,6 +27,10 @@ model User {
   notifications    Notification[]
   bookmarks        Bookmark[]
   evaluations      Evaluation[]
+  projects         Project[]
+  projectLikes     ProjectLike[]
+  projectBookmarks ProjectBookmark[]
+  teamJoinRequests TeamJoinRequest[]
 
   @@index([role])
   @@index([email])
@@ -48,6 +52,7 @@ model StudentProfile {
   githubUrl          String?
   linkedinUrl        String?
   portfolioUrl       String?
+  bio                String?
   verificationStatus String   @default("VERIFIED") // VERIFIED | PENDING | UNVERIFIED | STALE_NEEDS_UPDATE
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -288,25 +293,30 @@ model HackathonRegistration {
 }
 
 model Team {
-  id           String      @id @default(cuid())
-  hackathonId  String
-  hackathon    Hackathon   @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
-  name         String
-  description  String?
-  maxMembers   Int         @default(4)
-  inviteCode   String      @unique
-  status       String      @default("FORMING") // FORMING | READY | SUBMITTED | DISQUALIFIED
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id               String      @id @default(cuid())
+  hackathonId      String
+  hackathon        Hackathon   @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  name             String
+  description      String?
+  projectIdea      String?
+  requiredRoles    String      @default("[]") // JSON string array e.g. ["Frontend", "AI/ML", "UI/UX"]
+  isOpenForMembers Boolean     @default(true)
+  maxMembers       Int         @default(4)
+  inviteCode       String      @unique
+  status           String      @default("FORMING") // FORMING | READY | SUBMITTED | DISQUALIFIED
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
-  members       TeamMember[]
-  invitations   TeamInvitation[]
-  registrations HackathonRegistration[]
-  submissions   Submission[]
+  members          TeamMember[]
+  invitations      TeamInvitation[]
+  registrations    HackathonRegistration[]
+  submissions      Submission[]
+  joinRequests     TeamJoinRequest[]
 
   @@unique([hackathonId, name])
   @@index([hackathonId])
   @@index([inviteCode])
+  @@index([isOpenForMembers])
 }
 
 model TeamMember {
@@ -487,4 +497,72 @@ model EventOutbox {
 
   @@index([status])
   @@index([createdAt])
+}
+
+model TeamJoinRequest {
+  id        String   @id @default(cuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("Frontend") // Frontend | Backend | Fullstack | AI/ML | UI/UX | Mobile
+  message   String?
+  status    String   @default("PENDING") // PENDING | ACCEPTED | REJECTED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Project {
+  id           String   @id @default(cuid())
+  title        String
+  tagline      String
+  description  String
+  category     String   @default("WEB_APP") // WEB_APP | MOBILE | AI_ML | OPEN_SOURCE | IOT | CYBERSECURITY
+  technologies String   @default("[]") // JSON string array
+  repoUrl      String?
+  demoUrl      String?
+  imageUrl     String?
+  authorId     String
+  author       User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likesCount   Int      @default(0)
+  viewsCount   Int      @default(0)
+  featured     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  likes        ProjectLike[]
+  bookmarks    ProjectBookmark[]
+
+  @@index([authorId])
+  @@index([category])
+  @@index([featured])
+}
+
+model ProjectLike {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+}
+
+model ProjectBookmark {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([projectId])
 }
